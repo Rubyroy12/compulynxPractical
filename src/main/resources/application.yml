@@ -32,7 +32,7 @@ security:
 
 files:
   dir:
-    upload: /home/ibrahim/Documents/projectDocuments/dslink/uploads/
+    upload: /home/ibrahim/Documents/projectDocuments/compulynx/uploads/
 
 mvc:
   pathmatch:
