@@ -24,7 +24,7 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI customOpenApi() {
         return new OpenAPI()
-                .info(new Info().title("DLINK API Documentation").version("API Version"))
+                .info(new Info().title("Compulynx Practical API Documentation").version("API Version"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(
                         new Components()
