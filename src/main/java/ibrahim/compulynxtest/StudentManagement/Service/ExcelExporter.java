@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -61,7 +63,9 @@ public class ExcelExporter {
                 directory.mkdirs(); // Create folder if it doesn't exist
             }
 
-            String fileName = "students_data.xlsx";
+            SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd HH:mm:sss");
+
+            String fileName = students.size()+1+"_Students_"+formater.format(new Date())+".xlsx";
             File file = new File(directory, fileName);
 
             try (FileOutputStream fileOut = new FileOutputStream(file)) {
@@ -69,12 +73,9 @@ public class ExcelExporter {
                 log.info("Excel file has been written to {}", file.getAbsolutePath());
                 return ResponseBuilder.success("Excel file has been written to "+ file.getAbsolutePath(),file.getAbsolutePath());
             }
-
         } catch (IOException e) {
             log.error("Failed to save student data to Excel file: {}", e.getMessage());
             return ResponseBuilder.error("Failed to save student data to Excel file: "+ e.getMessage(),null);
-
-
         }
     }
 
