@@ -77,11 +77,11 @@ public class JwtServiceImpl implements JwtService {
     }
 
 
-    //to be revisited....deprecation
+
     public Claims extractAllClaims(String token) {
         try {
-            System.out.println("Token: " + token);
-            System.out.println("Signing Key: " + Base64.getEncoder().encodeToString(getSigningKey().getEncoded()));
+//            System.out.println("Token: " + token);
+//            System.out.println("Signing Key: " + Base64.getEncoder().encodeToString(getSigningKey().getEncoded()));
             return Jwts.parserBuilder()
                     .setSigningKey(getSigningKey())
                     .build()

@@ -4,9 +4,11 @@ package ibrahim.compulynxtest.StudentManagement.Implementations;
 import com.opencsv.CSVWriter;
 import ibrahim.compulynxtest.StudentManagement.Enums.Class;
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
+import ibrahim.compulynxtest.StudentManagement.Repository.Studentrepo;
 import ibrahim.compulynxtest.StudentManagement.Service.ExcelExporter;
 import ibrahim.compulynxtest.StudentManagement.Service.StudentService;
 import ibrahim.compulynxtest.Utils.ApiResponse;
+import ibrahim.compulynxtest.Utils.DbConnection;
 import ibrahim.compulynxtest.Utils.ResponseBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.datafaker.Faker;
@@ -15,13 +17,14 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+
+import static ibrahim.compulynxtest.Utils.DbConnection.getDBConnection;
 
 @Service
 @Slf4j
@@ -30,12 +33,15 @@ public class StudentImpl implements StudentService {
     @Value("${files.dir.upload}")
     private String folderPath;
 
+
     private static final Faker faker = new Faker();
     private static final Random random = new Random();
     private final ExcelExporter excelExporter;
+    private final Studentrepo studentrepo;
 
-    public StudentImpl(ExcelExporter excelExporter) {
+    public StudentImpl(ExcelExporter excelExporter, Studentrepo studentrepo) {
         this.excelExporter = excelExporter;
+        this.studentrepo = studentrepo;
     }
 
 
@@ -59,17 +65,75 @@ public class StudentImpl implements StudentService {
         if (folder.exists() && folder.isDirectory()) {
             Objects.requireNonNull(folder.listFiles());
             for (File file : Objects.requireNonNull(folder.listFiles())) {
-                convertExcelToCSV(file, folderPath + "Processed_" + file.getName()+".csv");
+                if (file.getName().toLowerCase().endsWith(".xlsx")) { // Process only .xlsx files
+                    convertExcelToCSV(file, folderPath + "/Processed_" + file.getName() + ".csv");
+                } else {
+                    log.warn("Skipping non-Excel file: {}", file.getName());
+                }
             }
         }
         return ResponseBuilder.success("Done", null);
+    }
+
+    @Override
+    public ApiResponse<?> upload() {
+        File folder = new File(folderPath);
+        if (folder.exists() && folder.isDirectory()) {
+            Objects.requireNonNull(folder.listFiles());
+            for (File file : Objects.requireNonNull(folder.listFiles())) {
+                if (file.getName().toLowerCase().endsWith(".xlsx")) {
+                    readExcelAndSaveToDB(file.getAbsolutePath());
+                } else {
+                    log.warn("Skipping non-Excel file: {}", file.getName());
+                }
+            }
+        }
+        return ResponseBuilder.success("Done", null);
+    }
+
+    @Override
+    public ApiResponse<List<Student>> fetchStudents() {
+
+        List<Student> students = studentrepo.findAll();
+
+        return ResponseBuilder.success(students.size() +" students found",students);
+    }
+
+    @Override
+    public ApiResponse<?> deleteById(Long studentId) {
+        Optional<Student> studentcheck = studentrepo.findById(studentId);
+        if(studentcheck.isPresent()){
+            studentrepo.deleteById(studentId);
+            return ResponseBuilder.success("Student Deleted successfully",null);
+        }
+        return ResponseBuilder.error("Student Does not exist",null);
+    }
+
+    @Override
+    public ApiResponse<Student> updateUser(Student student) {
+        Optional<Student> studentcheck = studentrepo.findById(student.getStudentId());
+        if(studentcheck.isPresent()){
+           Student s= studentrepo.save(student);
+            return ResponseBuilder.success("Student updated successfully",s);
+        }
+        return ResponseBuilder.error("Student Does not exist",null);
+    }
+
+    @Override
+    public ApiResponse<Student> findById(Long studentId) {
+        Optional<Student> studentcheck = studentrepo.findById(studentId);
+        if(studentcheck.isPresent()){
+            studentrepo.deleteById(studentId);
+            return ResponseBuilder.success("Student Found",studentcheck.get());
+        }
+        return ResponseBuilder.error("Student Does not exist",null);
     }
 
 
     public List<Student> studentDataGenerator(int nofrecords) {
         List<Student> studentArrays = new ArrayList<>();
 
-        for (int i = 1; i < nofrecords; i++) {
+        for (int i = 1; i <= nofrecords; i++) {
             studentArrays.add(generateStudent((long) i));
         }
 
@@ -128,6 +192,7 @@ public class StudentImpl implements StudentService {
     }
 
 
+
     public void convertExcelToCSV(File excelFilePath, String csvFilePath) throws IOException {
         log.info("EXCEL file: {}", excelFilePath);
         log.info("CSV file: {}", csvFilePath);
@@ -183,6 +248,59 @@ public class StudentImpl implements StudentService {
                 return "";
             default:
                 return "";
+        }
+    }
+    public void readExcelAndSaveToDB(String filePath) {
+
+        try (FileInputStream fis = new FileInputStream(new File(filePath));
+             Workbook workbook = new XSSFWorkbook(fis);
+             Connection conn = DbConnection.getDBConnection()) {
+
+            Sheet sheet = workbook.getSheetAt(0); // Read first sheet
+            Iterator<Row> rowIterator = sheet.iterator();
+            boolean firstRow = true;
+
+            String sql = "INSERT INTO student (student_id, first_name, last_name,dob, student_class, score, status, photo_path) \n" +
+                    "VALUES (null, ?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+
+            while (rowIterator.hasNext()) {
+                Row row = rowIterator.next();
+
+                // Skip header row
+                if (firstRow) {
+                    firstRow = false;
+                    continue;
+                }
+
+
+                String col2 = getCellValue(row.getCell(1));
+                String col3 = getCellValue(row.getCell(2));
+                String col4 = getCellValue(row.getCell(3));
+                String col5 = getCellValue(row.getCell(4));
+                String col6 = getCellValue(row.getCell(5));
+                String col7 = getCellValue(row.getCell(6));
+                String col8 = getCellValue(row.getCell(7));
+
+
+                pstmt.setString(1, col2);
+                pstmt.setString(2, col3);
+                pstmt.setString(3, col4);
+                pstmt.setString(4, col5);
+                pstmt.setString(5, col6+5);
+                pstmt.setString(6, col7);
+                pstmt.setString(7, col8);
+
+                pstmt.addBatch(); // Add to batch for better performance
+            }
+
+            conn.setAutoCommit(false);
+            pstmt.executeBatch();
+            conn.commit();
+            log.info("Data inserted successfully!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

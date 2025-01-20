@@ -17,8 +17,6 @@ public class CustomInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
-
-
         return true;
     }
 

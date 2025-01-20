@@ -45,7 +45,6 @@ public class ExcelExporter {
             sheet.setColumnWidth(6, 5 * 256);
             sheet.setColumnWidth(7, 40 * 256);
 
-            // Populate the rows with student data
             for (Student student : students) {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(student.getStudentId());
@@ -65,7 +64,7 @@ public class ExcelExporter {
 
             SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd HH:mm:sss");
 
-            String fileName = students.size()+1+"_Students_"+formater.format(new Date())+".xlsx";
+            String fileName = students.size()+"_Students_"+formater.format(new Date())+".xlsx";
             File file = new File(directory, fileName);
 
             try (FileOutputStream fileOut = new FileOutputStream(file)) {

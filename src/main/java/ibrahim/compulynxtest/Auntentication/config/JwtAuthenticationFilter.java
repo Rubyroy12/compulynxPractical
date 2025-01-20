@@ -32,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) {
         try {
             final String authHeader = request.getHeader("Authorization");
+            System.out.println(authHeader);
             final String jwt;
             final String userEmail;
             if (StringUtils.isEmpty(authHeader) || !StringUtils.startsWith(authHeader, "Bearer ")) {
@@ -39,6 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             jwt = authHeader.substring(7);
+            System.out.println(jwt);
             userEmail = jwtService.extractUserName(jwt);
 
             if (StringUtils.isNotEmpty(userEmail)

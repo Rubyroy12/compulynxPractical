@@ -14,6 +14,12 @@ public interface StudentService {
 
     ApiResponse<?> generateData(int nofrecords);
     ApiResponse<?> processData() throws IOException;
+    ApiResponse<?> upload();
+    ApiResponse<List<Student>> fetchStudents();
+    ApiResponse<?> deleteById(Long studentId);
+    ApiResponse<Student> updateUser(Student student);
+    ApiResponse<Student> findById(Long studentId);
+
 
 
 
