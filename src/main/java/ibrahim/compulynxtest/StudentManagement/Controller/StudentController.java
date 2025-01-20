@@ -1,23 +1,35 @@
 package ibrahim.compulynxtest.StudentManagement.Controller;
 
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
+import ibrahim.compulynxtest.StudentManagement.Repository.Studentrepo;
+import ibrahim.compulynxtest.StudentManagement.Service.ExcelExporter;
 import ibrahim.compulynxtest.StudentManagement.Service.StudentService;
 import ibrahim.compulynxtest.Utils.ApiResponse;
 import ibrahim.compulynxtest.Utils.ResponseBuilder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "*")
+@CrossOrigin
+@Slf4j
 @RequestMapping("api/v1/students")
 public class StudentController {
 
     private final StudentService studentService;
+    private final Studentrepo studentrepo;
+    private final ExcelExporter excelExporter;
 
-    public StudentController(StudentService studentService) {
+    public StudentController(StudentService studentService, Studentrepo studentrepo, ExcelExporter excelExporter) {
         this.studentService = studentService;
+        this.studentrepo = studentrepo;
+        this.excelExporter = excelExporter;
     }
 
 
@@ -43,6 +55,19 @@ public class StudentController {
 
 
     }
+    @GetMapping("class")
+    public ResponseEntity<ApiResponse<?>> filterByClass(@RequestParam String studentClass) {
+        try {
+            ApiResponse res = studentService.findByClass(studentClass);
+            return ResponseEntity.ok(res);
+        }catch (Exception e){
+            ApiResponse<?> response =ResponseBuilder.error(e.getLocalizedMessage(),null);
+            return ResponseEntity.ok(response);
+
+        }
+
+
+    }
     @GetMapping("upload")
     public ResponseEntity<ApiResponse<?>> upload() {
         try {
@@ -59,7 +84,7 @@ public class StudentController {
     @DeleteMapping("delete")
     public ResponseEntity<ApiResponse<?>> deleteUser(@RequestParam Long id) {
         try {
-            ApiResponse res = studentService.upload();
+            ApiResponse res = studentService.deleteById(id);
             return ResponseEntity.ok(res);
         }catch (Exception e){
             ApiResponse<?> response =ResponseBuilder.error(e.getLocalizedMessage(),null);
@@ -107,5 +132,21 @@ public class StudentController {
         }
 
 
+    }
+    @GetMapping("export")
+    public ResponseEntity<Resource> export(@RequestParam String startDate, @RequestParam String endDate ) {
+        log.info("Exporting student data");
+       List<Student> studentsbydobrange=studentrepo.findByByDOBRange(startDate,endDate);
+
+        String filename = "Student_report";
+        InputStreamResource file = null;
+
+            file = new InputStreamResource(excelExporter.export(studentsbydobrange));
+
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+                .body(file);
     }
 }

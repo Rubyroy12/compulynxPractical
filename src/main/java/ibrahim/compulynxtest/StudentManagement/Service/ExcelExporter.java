@@ -9,9 +9,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -84,4 +82,48 @@ public class ExcelExporter {
             cell.setCellValue(headers[i]);
         }
     }
+
+    public ByteArrayInputStream export(List<Student> students) {
+        try (
+                Workbook workbook = new XSSFWorkbook();
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ) {
+
+            // Create a sheet in the Excel workbook
+            Sheet sheet = workbook.createSheet("Students");
+
+            // Set up the header row
+            String[] headers = {"studentId", "firstName", "lastName", "DOB", "class", "score", "status", "photoPath"};
+            int rowNum = 0;
+            Row rowHeaders = sheet.createRow(rowNum++);
+            createRowHeader(rowHeaders, headers);
+
+            sheet.setColumnWidth(0, 6 * 256);
+            sheet.setColumnWidth(1, 12 * 256);
+            sheet.setColumnWidth(2, 12 * 256);
+            sheet.setColumnWidth(3, 10 * 256);
+            sheet.setColumnWidth(4, 6 * 256);
+            sheet.setColumnWidth(5, 5 * 256);
+            sheet.setColumnWidth(6, 5 * 256);
+            sheet.setColumnWidth(7, 40 * 256);
+
+            for (Student student : students) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(student.getStudentId());
+                row.createCell(1).setCellValue(student.getFirstName());
+                row.createCell(2).setCellValue(student.getLastName());
+                row.createCell(3).setCellValue(student.getDob().toString());
+                row.createCell(4).setCellValue(student.getStudentClass().name());
+                row.createCell(5).setCellValue(student.getScore());
+                row.createCell(6).setCellValue(student.getStatus());
+                row.createCell(7).setCellValue(student.getPhotoPath());
+            }
+
+          workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+} catch (IOException e) {
+        log.error("fail to import data to Excel file: {}", e.getMessage());
+        throw new RuntimeException("fail to import data to Excel file: {}" + e.getMessage());
+        }
+        }
 }

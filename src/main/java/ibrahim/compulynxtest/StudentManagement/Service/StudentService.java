@@ -19,6 +19,7 @@ public interface StudentService {
     ApiResponse<?> deleteById(Long studentId);
     ApiResponse<Student> updateUser(Student student);
     ApiResponse<Student> findById(Long studentId);
+    ApiResponse<List<Student>> findByClass(String studentClass);
 
 
 

@@ -103,7 +103,8 @@ public class StudentImpl implements StudentService {
     public ApiResponse<?> deleteById(Long studentId) {
         Optional<Student> studentcheck = studentrepo.findById(studentId);
         if(studentcheck.isPresent()){
-            studentrepo.deleteById(studentId);
+            studentcheck.get().setStatus(0);
+            studentrepo.save(studentcheck.get());
             return ResponseBuilder.success("Student Deleted successfully",null);
         }
         return ResponseBuilder.error("Student Does not exist",null);
@@ -127,6 +128,12 @@ public class StudentImpl implements StudentService {
             return ResponseBuilder.success("Student Found",studentcheck.get());
         }
         return ResponseBuilder.error("Student Does not exist",null);
+    }
+
+    @Override
+    public ApiResponse<List<Student>> findByClass(String  studentClass) {
+        List<Student> students = studentrepo.findByStudentClass(Class.valueOf(studentClass));
+        return ResponseBuilder.success(students.size() +" students found",students);
     }
 
 
