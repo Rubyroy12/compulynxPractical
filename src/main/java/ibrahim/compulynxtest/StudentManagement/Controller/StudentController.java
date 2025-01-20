@@ -138,12 +138,10 @@ public class StudentController {
         log.info("Exporting student data");
        List<Student> studentsbydobrange=studentrepo.findByByDOBRange(startDate,endDate);
 
+       log.info("Found {} Students",studentsbydobrange.size());
         String filename = "Student_report";
         InputStreamResource file = null;
-
             file = new InputStreamResource(excelExporter.export(studentsbydobrange));
-
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
                 .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
