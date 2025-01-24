@@ -1,7 +1,7 @@
 package ibrahim.compulynxtest.Auntentication.service;
 
 
-import ibrahim.compulynxtest.Auntentication.entities.Role;
+import ibrahim.compulynxtest.Auntentication.Enums.Role;
 import ibrahim.compulynxtest.Auntentication.entities.Roles;
 import ibrahim.compulynxtest.Auntentication.entities.User;
 import ibrahim.compulynxtest.Auntentication.repository.RoleRepo;
@@ -51,9 +51,13 @@ public class AdminService {
     @Transactional
     void addAdminRole() {
         log.info("Adding role");
-        Roles adminrole = new Roles(null, String.valueOf(Role.USER), "System administration");
+        Roles adminrole = new Roles(null, String.valueOf(Role.ADMIN), "System administration");
+        Roles maker = new Roles(null, String.valueOf(Role.INITIATOR), "maker");
+        Roles checker= new Roles(null, String.valueOf(Role.VERIFIER), "checker");
         List<Roles> roles = new ArrayList<>();
         roles.add(adminrole);
+        roles.add(maker);
+        roles.add(checker);
         roleRepo.saveAllAndFlush(roles);
 //        entityManager.persist(roles);
 
@@ -64,17 +68,20 @@ public class AdminService {
     @Transactional
     void addAdmin() {
         log.info("Adding admin user");
+        List<User> users = new ArrayList<>();
         User user = new User();
         Set<Roles> roles = new HashSet<>();
+        Set<Roles> makerrole = new HashSet<>();
+        Set<Roles> checkerole = new HashSet<>();
 
         // Fetch a managed instance of Roles
-        Roles adminrole = roleRepo.findByName(Role.USER.name())
+        Roles adminrole = roleRepo.findByName(Role.ADMIN.name())
                 .orElseThrow(() -> new RuntimeException("Error : Role Not found!"));
 
         // Optional: re-attach the role to the persistence context
 //        adminrole = roleRepo.saveAndFlush(adminrole);
-        log.info("Is adminrole attached ? {}",entityManager.contains(adminrole));
-
+//        log.info("Is adminrole attached ? {}",entityManager.contains(adminrole));
+//
 
         roles.add(adminrole);
         user.setRoles(roles);
@@ -85,8 +92,47 @@ public class AdminService {
         user.setDateRegistered(new Date());
         user.setPassword(passwordEncoder.encode("admin"));
 
+
+        //maker user
+        User maker = new User();
+        Roles initiator = roleRepo.findByName(Role.INITIATOR.name())
+                .orElseThrow(() -> new RuntimeException("Error : Role Not found!"));
+
+        makerrole.add(initiator);
+        maker.setRoles(roles);
+        maker.setFirstName("maker");
+        maker.setLastName("maker");
+        maker.setPhone("254725634469");
+        maker.setUsername("maker");
+        maker.setDateRegistered(new Date());
+        maker.setPassword(passwordEncoder.encode("admin"));
+
+
+        //checker user
+        User checker = new User();
+        Roles verifier = roleRepo.findByName(Role.VERIFIER.name())
+                .orElseThrow(() -> new RuntimeException("Error : Role Not found!"));
+
+        checkerole.add(verifier);
+        roles.add(adminrole);
+        checker.setRoles(roles);
+        checker.setFirstName("checker");
+        checker.setLastName("checker");
+        checker.setPhone("254725634469");
+        checker.setUsername("checker");
+        checker.setDateRegistered(new Date());
+        checker.setPassword(passwordEncoder.encode("admin"));
+
+
+        users.add(user);
+        users.add(maker);
+        users.add(checker);
+
+
+
+
         try {
-            userRepo.save(user);
+            userRepo.saveAllAndFlush(users);
 //            entityManager.persist(user);
         } catch (Exception e) {
             throw new RuntimeException(e.getLocalizedMessage());
@@ -98,10 +144,10 @@ public class AdminService {
         int countusers = userRepo.findAll().size();
         int roles = roleRepo.findAll().size();
         log.info("Users {}", countusers);
-        if (roles < 1) {
+        if (roles < 3) {
             addAdminRole();
         }
-        if (countusers < 1) {
+        if (countusers < 3) {
             addAdmin();
         }
 

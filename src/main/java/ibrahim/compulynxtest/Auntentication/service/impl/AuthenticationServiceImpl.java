@@ -4,7 +4,6 @@ package ibrahim.compulynxtest.Auntentication.service.impl;
 import ibrahim.compulynxtest.Auntentication.dao.request.SignUpRequest;
 import ibrahim.compulynxtest.Auntentication.dao.request.SigninRequest;
 import ibrahim.compulynxtest.Auntentication.dao.response.JwtAuthenticationResponse;
-import ibrahim.compulynxtest.Auntentication.entities.Role;
 import ibrahim.compulynxtest.Auntentication.entities.Roles;
 import ibrahim.compulynxtest.Auntentication.entities.User;
 import ibrahim.compulynxtest.Auntentication.repository.RoleRepo;
@@ -41,15 +40,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public ApiResponse<?> signup(SignUpRequest request) {
 
 
-        for (String role : request.getRoles()) {
-            boolean isValid = Arrays.stream(Role.values())
-                    .anyMatch(r -> r.name().equals(role));
-            if (isValid) {
-                System.out.println(role + " is VALID");
-            } else {
-                return ResponseBuilder.error(role + " is INVALID", null);
-            }
-        }
+
 
 
         Set<Roles> userroles = new HashSet<>();

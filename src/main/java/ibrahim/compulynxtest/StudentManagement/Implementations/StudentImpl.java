@@ -3,7 +3,10 @@ package ibrahim.compulynxtest.StudentManagement.Implementations;
 
 import com.opencsv.CSVWriter;
 import ibrahim.compulynxtest.StudentManagement.Enums.Class;
+import ibrahim.compulynxtest.StudentManagement.Enums.Tracker;
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
+import ibrahim.compulynxtest.StudentManagement.Models.StudentDraft;
+import ibrahim.compulynxtest.StudentManagement.Repository.StudentDraftRepo;
 import ibrahim.compulynxtest.StudentManagement.Repository.Studentrepo;
 import ibrahim.compulynxtest.StudentManagement.Service.ExcelExporter;
 import ibrahim.compulynxtest.StudentManagement.Service.StudentService;
@@ -15,6 +18,8 @@ import net.datafaker.Faker;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -38,10 +43,13 @@ public class StudentImpl implements StudentService {
     private static final Random random = new Random();
     private final ExcelExporter excelExporter;
     private final Studentrepo studentrepo;
+    private final StudentDraftRepo draftRepo;
 
-    public StudentImpl(ExcelExporter excelExporter, Studentrepo studentrepo) {
+
+    public StudentImpl(ExcelExporter excelExporter, Studentrepo studentrepo, StudentDraftRepo draftRepo) {
         this.excelExporter = excelExporter;
         this.studentrepo = studentrepo;
+        this.draftRepo = draftRepo;
     }
 
 
@@ -96,44 +104,72 @@ public class StudentImpl implements StudentService {
 
         List<Student> students = studentrepo.findAll();
 
-        return ResponseBuilder.success(students.size() +" students found",students);
+        return ResponseBuilder.success(students.size() + " students found", students);
     }
 
     @Override
     public ApiResponse<?> deleteById(Long studentId) {
         Optional<Student> studentcheck = studentrepo.findById(studentId);
-        if(studentcheck.isPresent()){
+        if (studentcheck.isPresent()) {
             studentcheck.get().setStatus(0);
             studentrepo.save(studentcheck.get());
-            return ResponseBuilder.success("Student Deleted successfully",null);
+            return ResponseBuilder.success("Student Deleted successfully", null);
         }
-        return ResponseBuilder.error("Student Does not exist",null);
+        return ResponseBuilder.error("Student Does not exist", null);
     }
 
     @Override
     public ApiResponse<Student> updateUser(Student student) {
         Optional<Student> studentcheck = studentrepo.findById(student.getStudentId());
-        if(studentcheck.isPresent()){
-           Student s= studentrepo.save(student);
-            return ResponseBuilder.success("Student updated successfully",s);
+        if (studentcheck.isPresent()) {
+            Student s = studentrepo.save(student);
+            return ResponseBuilder.success("Student updated successfully", s);
         }
-        return ResponseBuilder.error("Student Does not exist",null);
+        return ResponseBuilder.error("Student Does not exist", null);
     }
+
+    @Override
+    public ApiResponse<Student> updateUserDraft(Student student) {
+        log.info("---Student update initiated by {} ----",SecurityContextHolder.getContext().getAuthentication().getName() );
+
+        Optional<Student> studentcheck = studentrepo.findById(student.getStudentId());
+        if (studentcheck.isPresent()) {
+
+            StudentDraft draft = new StudentDraft();
+            draft.setFirstName(student.getFirstName());
+            draft.setLastName(student.getLastName());
+            draft.setDob(student.getDob());
+            draft.setScore(student.getScore());
+            draft.setStudentClass(student.getStudentClass());
+            draft.setPhotoPath(student.getPhotoPath());
+            draft.setStatus(student.getStatus());
+            draft.setModifiedBy(SecurityContextHolder.getContext().getAuthentication().getName());
+            draft.setModifiedDate(new Date());
+
+            studentcheck.get().setState(Tracker.PENDING);
+
+            draftRepo.save(draft);
+            log.info("Saving student update draft...");
+            return ResponseBuilder.success("Student update is pending for approval", student);
+        }
+        return ResponseBuilder.error("Student Does not exist", null);
+    }
+
 
     @Override
     public ApiResponse<Student> findById(Long studentId) {
         Optional<Student> studentcheck = studentrepo.findById(studentId);
-        if(studentcheck.isPresent()){
+        if (studentcheck.isPresent()) {
             studentrepo.deleteById(studentId);
-            return ResponseBuilder.success("Student Found",studentcheck.get());
+            return ResponseBuilder.success("Student Found", studentcheck.get());
         }
-        return ResponseBuilder.error("Student Does not exist",null);
+        return ResponseBuilder.error("Student Does not exist", null);
     }
 
     @Override
-    public ApiResponse<List<Student>> findByClass(String  studentClass) {
+    public ApiResponse<List<Student>> findByClass(String studentClass) {
         List<Student> students = studentrepo.findByStudentClass(Class.valueOf(studentClass));
-        return ResponseBuilder.success(students.size() +" students found",students);
+        return ResponseBuilder.success(students.size() + " students found", students);
     }
 
 
@@ -199,7 +235,6 @@ public class StudentImpl implements StudentService {
     }
 
 
-
     public void convertExcelToCSV(File excelFilePath, String csvFilePath) throws IOException {
         log.info("EXCEL file: {}", excelFilePath);
         log.info("CSV file: {}", csvFilePath);
@@ -257,18 +292,19 @@ public class StudentImpl implements StudentService {
                 return "";
         }
     }
+
     public void readExcelAndSaveToDB(String filePath) {
 
         try (FileInputStream fis = new FileInputStream(new File(filePath));
              Workbook workbook = new XSSFWorkbook(fis);
              Connection conn = DbConnection.getDBConnection()) {
 
-            Sheet sheet = workbook.getSheetAt(0); // Read first sheet
+            Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rowIterator = sheet.iterator();
             boolean firstRow = true;
 
-            String sql = "INSERT INTO student (student_id, first_name, last_name,dob, student_class, score, status, photo_path) \n" +
-                    "VALUES (null, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO student (student_id, first_name, last_name,dob, student_class, score, status, photo_path,state) \n" +
+                    "VALUES (null, ?, ?, ?, ?, ?, ?, ?,?)";
             PreparedStatement pstmt = conn.prepareStatement(sql);
 
             while (rowIterator.hasNext()) {
@@ -286,19 +322,21 @@ public class StudentImpl implements StudentService {
                 String col4 = getCellValue(row.getCell(3));
                 String col5 = getCellValue(row.getCell(4));
                 String col6 = getCellValue(row.getCell(5));
-                String col7 = getCellValue(row.getCell(6));
-                String col8 = getCellValue(row.getCell(7));
+                String col7 = String.valueOf(1);
+                String col8 = "";
+                String col9 = Tracker.ACTIVE.name();
 
 
                 pstmt.setString(1, col2);
                 pstmt.setString(2, col3);
                 pstmt.setString(3, col4);
                 pstmt.setString(4, col5);
-                pstmt.setString(5, col6+5);
+                pstmt.setString(5, col6 + 5);
                 pstmt.setString(6, col7);
                 pstmt.setString(7, col8);
+                pstmt.setString(8, col9);
 
-                pstmt.addBatch(); // Add to batch for better performance
+                pstmt.addBatch();
             }
 
             conn.setAutoCommit(false);
@@ -310,4 +348,11 @@ public class StudentImpl implements StudentService {
             e.printStackTrace();
         }
     }
+
+
+//    public void initiateUpdate(Student student) {
+//
+//
+//        studentDraftRepository.save(draft);
+//    }
 }

@@ -1,21 +1,26 @@
 package ibrahim.compulynxtest.StudentManagement.Models;
 
 import ibrahim.compulynxtest.StudentManagement.Enums.Class;
-import ibrahim.compulynxtest.StudentManagement.Enums.Tracker;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.Date;
 
-@Entity
 @Data
-public class Student {
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "draft")
+public class StudentDraft {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private Long studentId;
     @Size(min = 3,max = 8)
     private String  firstName;
@@ -31,23 +36,7 @@ public class Student {
     private int status=1;
     private String photoPath="";
 
-    //audit
-
-    @Enumerated(EnumType.STRING)
-    private Tracker state;
-    private String reason;
     private String modifiedBy;
     private Date modifiedDate;
 
-
 }
-
-
-//studentId – numeric incremental by one, starting value 1.
-//firstName – string (random alphabet characters)  -3, Max 8
-//lastName – string (random alphabet characters) Min -3, Max 8
-//DOB – date (random date of birth between 1-1-2000 and 31-12-2010)
-//class – string (random class name OPTIONS [Class1, Class2, Class3, Class4, Class5])
-//score - numeric (random number between 55 and 85).
-//status – numeric (0 – inactive, 1 – active) default 1- active
-//photoPath – string (Default – empty string)

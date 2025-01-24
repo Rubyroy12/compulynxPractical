@@ -13,8 +13,6 @@ public interface Studentrepo extends JpaRepository<Student,Long> {
 
     List<Student> findByStudentClass(Class studentClass);
 
-
-
     @Query(nativeQuery = true,value = "select * FROM student WHERE dob BETWEEN :startDate AND :endDate")
     List<Student> findByByDOBRange(String startDate,String endDate);
 }

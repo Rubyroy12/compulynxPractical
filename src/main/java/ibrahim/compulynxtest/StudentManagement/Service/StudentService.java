@@ -18,6 +18,7 @@ public interface StudentService {
     ApiResponse<List<Student>> fetchStudents();
     ApiResponse<?> deleteById(Long studentId);
     ApiResponse<Student> updateUser(Student student);
+    ApiResponse<Student> updateUserDraft(Student student);
     ApiResponse<Student> findById(Long studentId);
     ApiResponse<List<Student>> findByClass(String studentClass);
 
