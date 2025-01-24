@@ -1,5 +1,6 @@
 package ibrahim.compulynxtest.StudentManagement.Controller;
 
+import ibrahim.compulynxtest.Auntentication.Enums.Role;
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
 import ibrahim.compulynxtest.StudentManagement.Models.Updaterequest;
 import ibrahim.compulynxtest.StudentManagement.Repository.Studentrepo;
@@ -14,6 +15,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -145,6 +147,7 @@ public class StudentController {
 
         }
     }
+    @PreAuthorize("hasRole('VERIFIER')")
     @PostMapping("approve")
     public ResponseEntity<ApiResponse<?>> approve(@RequestBody Updaterequest updaterequest) {
         log.info("Updating student with id {}", updaterequest.getStudentId());
@@ -168,7 +171,6 @@ public class StudentController {
             return ResponseEntity.ok(response);
 
         }
-
 
     }
 
@@ -207,4 +209,17 @@ public class StudentController {
             return ResponseEntity.status(500).body(ResponseBuilder.error("File upload failed",null));
         }
     }
+    @PostMapping("selected")
+    public ResponseEntity<ApiResponse<?>> selected(@RequestBody List<Long> ids) {
+        try {
+            ApiResponse res = studentService.selected(ids);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            ApiResponse<?> response = ResponseBuilder.error(e.getLocalizedMessage(), null);
+            return ResponseEntity.ok(response);
+
+        }
+
+    }
+
 }

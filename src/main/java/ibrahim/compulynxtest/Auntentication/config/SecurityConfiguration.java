@@ -57,7 +57,7 @@ public class SecurityConfiguration {
                         auth.
                                 requestMatchers(swaggerWhitelist).permitAll().
                                 requestMatchers("/api/v1/auth/**").permitAll()
-                                .anyRequest().permitAll()
+                                .anyRequest().authenticated()
 
 
                 )

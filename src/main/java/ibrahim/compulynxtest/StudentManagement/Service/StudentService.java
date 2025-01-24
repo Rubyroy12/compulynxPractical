@@ -17,6 +17,7 @@ public interface StudentService {
     ApiResponse<?> processData() throws IOException;
     ApiResponse<?> upload();
     ApiResponse<List<Student>> fetchStudents();
+    ApiResponse<?> selected(List<Long> ids);
     ApiResponse<?> deleteById(Long studentId);
     ApiResponse<?> approveUpdate(Updaterequest updaterequest);
     ApiResponse<Student> updateUser(Student student);

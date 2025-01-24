@@ -2,8 +2,10 @@ package ibrahim.compulynxtest.StudentManagement.Implementations;
 
 
 import com.opencsv.CSVWriter;
+import ibrahim.compulynxtest.Auntentication.Enums.Role;
 import ibrahim.compulynxtest.StudentManagement.Enums.Class;
 import ibrahim.compulynxtest.StudentManagement.Enums.Tracker;
+import ibrahim.compulynxtest.StudentManagement.Models.SelectedResponse;
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
 import ibrahim.compulynxtest.StudentManagement.Models.StudentDraft;
 import ibrahim.compulynxtest.StudentManagement.Models.Updaterequest;
@@ -19,6 +21,7 @@ import net.datafaker.Faker;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -106,6 +109,25 @@ public class StudentImpl implements StudentService {
         List<Student> students = studentrepo.findAll();
 
         return ResponseBuilder.success(students.size() + " students found", students);
+    }
+
+    @Override
+    public ApiResponse<?> selected(List<Long> ids) {
+
+        List<Student> students = studentrepo.findByStudentIdIn(ids);
+
+        double averageScore = students.stream()
+                .mapToDouble(Student::getScore) // Convert Student objects to scores
+                .average() // Compute average
+                .orElse(0.0); // Default to 0.0 if list is empty
+        int totalScore = students.stream()
+                .filter(student -> ids.contains(student.getStudentId())) // Filter students by IDs
+                .mapToInt(Student::getScore)
+                .sum();
+
+        SelectedResponse selectedResponse=new SelectedResponse(students,averageScore,totalScore);
+
+        return ResponseBuilder.success("Data Found", selectedResponse);
     }
 
     @Override
