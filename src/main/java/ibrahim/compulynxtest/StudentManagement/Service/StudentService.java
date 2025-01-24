@@ -1,6 +1,7 @@
 package ibrahim.compulynxtest.StudentManagement.Service;
 
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
+import ibrahim.compulynxtest.StudentManagement.Models.Updaterequest;
 import ibrahim.compulynxtest.Utils.ApiResponse;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +18,13 @@ public interface StudentService {
     ApiResponse<?> upload();
     ApiResponse<List<Student>> fetchStudents();
     ApiResponse<?> deleteById(Long studentId);
+    ApiResponse<?> approveUpdate(Updaterequest updaterequest);
     ApiResponse<Student> updateUser(Student student);
     ApiResponse<Student> updateUserDraft(Student student);
-    ApiResponse<Student> findById(Long studentId);
+    ApiResponse<?> findById(Long studentId);
     ApiResponse<List<Student>> findByClass(String studentClass);
+    ApiResponse<List<Student>> findByState(String state);
+
 
 
 

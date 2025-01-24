@@ -6,6 +6,7 @@ import ibrahim.compulynxtest.StudentManagement.Enums.Class;
 import ibrahim.compulynxtest.StudentManagement.Enums.Tracker;
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
 import ibrahim.compulynxtest.StudentManagement.Models.StudentDraft;
+import ibrahim.compulynxtest.StudentManagement.Models.Updaterequest;
 import ibrahim.compulynxtest.StudentManagement.Repository.StudentDraftRepo;
 import ibrahim.compulynxtest.StudentManagement.Repository.Studentrepo;
 import ibrahim.compulynxtest.StudentManagement.Service.ExcelExporter;
@@ -119,6 +120,43 @@ public class StudentImpl implements StudentService {
     }
 
     @Override
+    public ApiResponse<?> approveUpdate(Updaterequest updaterequest) {
+        Optional<StudentDraft> draftstudentcheck = draftRepo.findByStudentId(updaterequest.getStudentId());
+        Optional<Student> studentcheck = studentrepo.findById(updaterequest.getStudentId());
+
+        if (Tracker.APPROVED.name().equals(updaterequest.getStatus())) {
+            if (studentcheck.isPresent() && draftstudentcheck.isPresent()) {
+                StudentDraft draft = draftstudentcheck.get();
+                Student student = studentcheck.get();
+                student.setFirstName(draft.getFirstName());
+                student.setLastName(draft.getLastName());
+                student.setDob(draft.getDob());
+                student.setScore(draft.getScore());
+                student.setStudentClass(draft.getStudentClass());
+                student.setPhotoPath(draft.getPhotoPath());
+                student.setStatus(draft.getStatus());
+                student.setState(Tracker.valueOf(Tracker.ACTIVE.name()));
+                student.setModifiedBy(SecurityContextHolder.getContext().getAuthentication().getName());
+                student.setModifiedDate(new Date());
+                Student s = studentrepo.save(student);
+                draftRepo.delete(draft);
+                return ResponseBuilder.success("Student updated successfully", s);
+            } else {
+
+                return ResponseBuilder.error("Student Does not exist", null);
+            }
+        } else {
+            studentcheck.get().setState(Tracker.REJECTED);
+            studentcheck.get().setReason(updaterequest.getReason());
+            studentrepo.save(studentcheck.get());
+            return ResponseBuilder.success("Student Rejected!", null);
+
+        }
+
+
+    }
+
+    @Override
     public ApiResponse<Student> updateUser(Student student) {
         Optional<Student> studentcheck = studentrepo.findById(student.getStudentId());
         if (studentcheck.isPresent()) {
@@ -130,12 +168,13 @@ public class StudentImpl implements StudentService {
 
     @Override
     public ApiResponse<Student> updateUserDraft(Student student) {
-        log.info("---Student update initiated by {} ----",SecurityContextHolder.getContext().getAuthentication().getName() );
+        log.info("---Student update initiated by {} ----", SecurityContextHolder.getContext().getAuthentication().getName());
 
         Optional<Student> studentcheck = studentrepo.findById(student.getStudentId());
         if (studentcheck.isPresent()) {
 
             StudentDraft draft = new StudentDraft();
+            draft.setStudentId(student.getStudentId());
             draft.setFirstName(student.getFirstName());
             draft.setLastName(student.getLastName());
             draft.setDob(student.getDob());
@@ -157,10 +196,16 @@ public class StudentImpl implements StudentService {
 
 
     @Override
-    public ApiResponse<Student> findById(Long studentId) {
+    public ApiResponse<?> findById(Long studentId) {
+        log.info("finding by id {}", studentId);
         Optional<Student> studentcheck = studentrepo.findById(studentId);
         if (studentcheck.isPresent()) {
-            studentrepo.deleteById(studentId);
+            log.info("Student State {}", Tracker.valueOf(studentcheck.get().getState().name()));
+            if (String.valueOf(Tracker.valueOf(studentcheck.get().getState().name())).equals(Tracker.PENDING.name())) {
+
+                Optional<StudentDraft> draft = draftRepo.findByStudentId(studentId);
+                return ResponseBuilder.success("Student Draft Found", draft.get());
+            }
             return ResponseBuilder.success("Student Found", studentcheck.get());
         }
         return ResponseBuilder.error("Student Does not exist", null);
@@ -169,6 +214,12 @@ public class StudentImpl implements StudentService {
     @Override
     public ApiResponse<List<Student>> findByClass(String studentClass) {
         List<Student> students = studentrepo.findByStudentClass(Class.valueOf(studentClass));
+        return ResponseBuilder.success(students.size() + " students found", students);
+    }
+
+    @Override
+    public ApiResponse<List<Student>> findByState(String state) {
+        List<Student> students = studentrepo.findByState(Tracker.valueOf(state));
         return ResponseBuilder.success(students.size() + " students found", students);
     }
 
@@ -294,7 +345,6 @@ public class StudentImpl implements StudentService {
     }
 
     public void readExcelAndSaveToDB(String filePath) {
-
         try (FileInputStream fis = new FileInputStream(new File(filePath));
              Workbook workbook = new XSSFWorkbook(fis);
              Connection conn = DbConnection.getDBConnection()) {
@@ -303,8 +353,8 @@ public class StudentImpl implements StudentService {
             Iterator<Row> rowIterator = sheet.iterator();
             boolean firstRow = true;
 
-            String sql = "INSERT INTO student (student_id, first_name, last_name,dob, student_class, score, status, photo_path,state) \n" +
-                    "VALUES (null, ?, ?, ?, ?, ?, ?, ?,?)";
+            String sql = "INSERT INTO student (student_id, first_name, last_name, dob, student_class, score, status, photo_path, state) " +
+                    "VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pstmt = conn.prepareStatement(sql);
 
             while (rowIterator.hasNext()) {
@@ -316,7 +366,6 @@ public class StudentImpl implements StudentService {
                     continue;
                 }
 
-
                 String col2 = getCellValue(row.getCell(1));
                 String col3 = getCellValue(row.getCell(2));
                 String col4 = getCellValue(row.getCell(3));
@@ -324,7 +373,6 @@ public class StudentImpl implements StudentService {
                 String col6 = getCellValue(row.getCell(5));
                 String col7 = String.valueOf(1);
                 String col8 = "";
-                String col9 = Tracker.ACTIVE.name();
 
 
                 pstmt.setString(1, col2);
@@ -334,7 +382,7 @@ public class StudentImpl implements StudentService {
                 pstmt.setString(5, col6 + 5);
                 pstmt.setString(6, col7);
                 pstmt.setString(7, col8);
-                pstmt.setString(8, col9);
+                pstmt.setString(8, Tracker.ACTIVE.name());  // Correct way to insert ENUM
 
                 pstmt.addBatch();
             }

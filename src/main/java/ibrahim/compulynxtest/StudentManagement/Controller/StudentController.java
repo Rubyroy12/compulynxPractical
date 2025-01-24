@@ -1,6 +1,7 @@
 package ibrahim.compulynxtest.StudentManagement.Controller;
 
 import ibrahim.compulynxtest.StudentManagement.Models.Student;
+import ibrahim.compulynxtest.StudentManagement.Models.Updaterequest;
 import ibrahim.compulynxtest.StudentManagement.Repository.Studentrepo;
 import ibrahim.compulynxtest.StudentManagement.Service.ExcelExporter;
 import ibrahim.compulynxtest.StudentManagement.Service.StudentService;
@@ -75,6 +76,20 @@ public class StudentController {
 
 
     }
+    @GetMapping("state")
+    public ResponseEntity<ApiResponse<?>> filterByState(@RequestParam String state) {
+        try {
+            ApiResponse<?> res = studentService.findByState(state);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            ApiResponse<?> response = ResponseBuilder.error(e.getLocalizedMessage(), null);
+            return ResponseEntity.ok(response);
+
+        }
+
+
+    }
+
 
     @GetMapping("upload")
     public ResponseEntity<ApiResponse<?>> upload() {
@@ -107,7 +122,7 @@ public class StudentController {
     @GetMapping("{id}")
     public ResponseEntity<ApiResponse<?>> getUser(@PathVariable("id") Long id) {
         try {
-            ApiResponse res = studentService.findById(id);
+            ApiResponse<?> res = studentService.findById(id);
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             ApiResponse<?> response = ResponseBuilder.error(e.getLocalizedMessage(), null);
@@ -123,6 +138,18 @@ public class StudentController {
         log.info("Updating student with id {}", student.getStudentId());
         try {
             ApiResponse<?> res = studentService.updateUserDraft(student);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            ApiResponse<?> response = ResponseBuilder.error(e.getLocalizedMessage(), null);
+            return ResponseEntity.ok(response);
+
+        }
+    }
+    @PostMapping("approve")
+    public ResponseEntity<ApiResponse<?>> approve(@RequestBody Updaterequest updaterequest) {
+        log.info("Updating student with id {}", updaterequest.getStudentId());
+        try {
+            ApiResponse<?> res = studentService.approveUpdate(updaterequest);
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             ApiResponse<?> response = ResponseBuilder.error(e.getLocalizedMessage(), null);

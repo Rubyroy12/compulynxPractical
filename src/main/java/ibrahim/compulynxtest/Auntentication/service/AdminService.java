@@ -99,7 +99,7 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Error : Role Not found!"));
 
         makerrole.add(initiator);
-        maker.setRoles(roles);
+        maker.setRoles(makerrole);
         maker.setFirstName("maker");
         maker.setLastName("maker");
         maker.setPhone("254725634469");
@@ -115,7 +115,7 @@ public class AdminService {
 
         checkerole.add(verifier);
         roles.add(adminrole);
-        checker.setRoles(roles);
+        checker.setRoles(checkerole);
         checker.setFirstName("checker");
         checker.setLastName("checker");
         checker.setPhone("254725634469");
